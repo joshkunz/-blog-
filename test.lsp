@@ -1,15 +1,13 @@
 (load "xml.lsp")
 
 (print
- (XML:sdump
-  '(html 
-    (head (title "Test Site"))
-    (body (@class "\"Cool cats")
-     (h1 "<i>Cool Site!</i>")
-     (hr)
-     (span "yeah!")
-    )
+(XML:sdump
+ '(html
+   (body
+    (div (~uq "<h1> Some raw text</h1>"))
    )
- )
+  )
 )
+)
+
 (exit)

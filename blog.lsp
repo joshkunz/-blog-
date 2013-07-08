@@ -1,28 +1,47 @@
+; General OS related utilities
+(context 'os)
+
+; Import tmpnam from libc
+(set 'libc-name (case ostype
+                 ("OSX" "libc.dylib"))
+)
+
+(import libc-name "tmpnam" "char*" "char*")
+
+; newLISP wrapper for C's tmpnam
+(define (tempname)
+ (get-string (tmpnam 0))
+)
+
 ; Utilities for blog generation
-(load "xml.lsp")
+(context 'rss)
 
-(context 'RSS)
+(set '*generator* "newLISP RSS v0.1")
 
-; _channels -> a list of 'channel_f' expressions
-(set 'feed_f
- '(rss _channels))
+; Date formatting string for the rss spec
+(set 'rss-date_f "%a, %d %b %Y %H:%M:%S GMT")
+
+(define (rss-date (date-int (apply date-value (now))))
+ (date date-int 0 rss-date_f)
+)
 
 ; _title -> title of the channel
 ; _link -> link to the channel
 ; _desc -> description of the channel
 ; _lang -> language of the channel
 ; _build -> last date of the build
-; _items -> A list of 'item_f' s-expressions
 (set 'channel_f
+ (letex (_generator *generator*)
  '(channel
    (title _title)
    (link _link)
    (description _desc)
    (language _lang)
    (lastBuildDate _build)
-   (generator "newLISP generator")
-   _items
+   (generator _generator)
+   ; _items
   )
+ )
 )
 
 ; _title -> title of the item
@@ -41,20 +60,107 @@
   )
 )
 
-; Date formatting string for the rss spec
-(set 'rss-date_f "%a, %d %b %Y %H:%M:%S GMT")
-
 ; Function for generating a feed
-(define (feed _channels)
- (expand feed_f '_channels))
+(define (feed _channels (_version "2.0"))
+ (extend 
+  (expand '(rss (@version _version)) '_version) _channels)
+)
 
 (define (channel _title 
                  _link 
                  _desc
                  (_lang "en-us")
-                 (_build (date (date-value) 0 rss-date_f)))
- (expand channel_f
-  '_title '_link '_desc '_lang '_build)
+                 (_build (rss-date))
+                 _items)
+
+ (extend 
+  (expand channel_f
+   '_title '_link '_desc '_lang '_build)
+  _items)
+)
+
+(define (item _title 
+              _author
+              _link
+              _date
+              _desc)
+ (expand item_f
+  '_title '_author '_link '_date '_desc)
+)
+
+; A FOOP for blogs
+(context 'blog)
+
+; Markdown a piece of raw text
+(define (markdown text)
+ (letn (tname (os:tempname)
+        tfile (open tname "write"))
+  (write tfile text)
+  (close tfile)
+  (join (exec (append "markdown " tname)))
+ )
+)
+
+(set '*posts* '())
+(set '*title* "")
+(set '*author* "")
+(set '*link-base* "")
+
+(set '*date-format* "%Y-%m-%d")
+
+; Parse a date-string with the date-format
+(define (on date-string)
+ (date-list
+  (date-parse date-string *date-format*)
+ )
+)
+
+; Add a new post to the posts list
+(define (post title posted path content)
+ (setq *posts* 
+  (cons 
+   (list title
+         posted
+         path
+         content)
+   *posts*
+  )
+ )
+)
+
+; Join two url parts
+(define (url-join partA partB)
+ (let (f-partA (if (= (last partA) "/") (chop partA) partA)
+       f-partB (if (= (first partB) "/") (rest partB) partB))
+  (join (list partA partB) "/")
+ )
+)
+
+; Convert a post into an rss-item 
+(define (post-as-item post)
+ (rss:item
+  (nth 0 post)
+  *author*
+  (url-join *link-base* (nth 2 post))
+  (rss:rss-date (apply date-value (nth 1 post)))
+  (nth 3 post)
+ )
+)
+  
+; Render this blog as an rss-feed
+(define (render-rss desc)
+ (rss:feed
+  (list 
+  (rss:channel
+   *title*
+   *link-base*
+   desc
+   "en-us"
+   (rss:rss-date)
+   (map post-as-item *posts*)
+  )
+  )
+ )
 )
 
 (context 'MAIN)

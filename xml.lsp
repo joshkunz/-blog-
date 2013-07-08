@@ -1,6 +1,10 @@
-; Make an indent given the indent level
-
 (context 'XML)
+
+; prefix on attribute elements
+(setq *attr-prefix* "@")
+; symbol that is the first item in an unquoted
+; string pair
+(setq *unquote-symbol* '~uq)
 
 ; Given the assoc table 'table' with
 ; character mappings, iterate through
@@ -41,22 +45,41 @@
 (define (xml-attr-quote str)
  (translate str xml-attr-escapes))
 
+; Make an indent given the indent level
 (define (tab level (spaces 4)) (dup " " (* spaces level)))
+
+; Check if a pair is an unquoted string pair
 
 ; Attributes are in the form: @attr-name
 ; For example: @class
 (define (attr? node)
- (and (symbol? node) (= (nth 0 (term node)) "@")))
+ (and (symbol? node) (starts-with (term node) *attr-prefix*)))
 
 ; Check if the first element in a list
 ; is an attr symbol
 (define (attr-pair? node)
  (and (list? node) (attr? (first node))))
 
+; Check if this is an unquoted string
+(define (unquoted-string? str-pair)
+ (if (list? str-pair)
+  (let (sterm (term (first str-pair))
+        uqterm (term *unquote-symbol*))
+   (= sterm uqterm)
+  )
+ )
+)
+
 ; Get the string name of the symbol
 ; without the leading @ symbol
 (define (attr-name symbol)
- (rest (term symbol)))
+ (let (str-symbol (term symbol))
+  (slice str-symbol
+   (+ (length *attr-prefix*)
+      (find *attr-prefix* str-symbol))
+  )
+ )
+)
 
 ; Convert an attribute pair to a string
 ; (@attr-name "blue green") => attr-name="blue green"
@@ -86,7 +109,9 @@
                         (closer null-closer) 
                         (indent 0))
  (cond
-  ((empty? xp) (closer parent indent))
+  ((= xp '()) 
+   (closer parent indent)
+  )
   ((string? (first xp)) 
    (append
     (cap-close closed?) 
@@ -94,16 +119,26 @@
     (sdump (rest xp) parent true tag-closer 0)
    )
   )
-  ((symbol? (first xp)) (append
+  ((unquoted-string? (first xp))
+   (append
+    (cap-close closed?)
+    (last (first xp))
+    (sdump (rest xp) parent true tag-closer 0)
+   )
+  )
+  ((symbol? (first xp)) 
+   (append
     (closer parent indent)
     (tab indent) (open-tag (first xp))
     (sdump (rest xp) (first xp) nil empty-closer indent)
-    )
+   )
   )
   ((attr-pair? (first xp))
    (append 
     (attr-pair-string (first xp))
-    (sdump (rest xp) parent closed? closer indent)))
+    (sdump (rest xp) parent closed? closer indent)
+   )
+  )
   ((list? (first xp))
    (append 
     (cap-close closed? true)
