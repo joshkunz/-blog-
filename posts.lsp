@@ -17,6 +17,17 @@
  )
 )
 
+(josh:post
+ "This is another post by josh"
+ (josh:on "2013-07-08")
+ "this-is-another-post"
+ (blog:markdown
+  "#Hello World!
+
+  How are you all today?"
+ )
+)
+
 (print
  (XML:sdump
   (josh:render-rss "Josh's fun-time blog")

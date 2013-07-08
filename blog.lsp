@@ -69,9 +69,9 @@
 (define (channel _title 
                  _link 
                  _desc
+                 _items
                  (_lang "en-us")
-                 (_build (rss-date))
-                 _items)
+                 (_build (rss-date)))
 
  (extend 
   (expand channel_f
@@ -155,8 +155,6 @@
    *title*
    *link-base*
    desc
-   "en-us"
-   (rss:rss-date)
    (map post-as-item *posts*)
   )
   )
