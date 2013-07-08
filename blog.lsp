@@ -132,7 +132,7 @@
 (define (url-join partA partB)
  (let (f-partA (if (= (last partA) "/") (chop partA) partA)
        f-partB (if (= (first partB) "/") (rest partB) partB))
-  (join (list partA partB) "/")
+  (join (list f-partA f-partB) "/")
  )
 )
 
