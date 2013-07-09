@@ -28,10 +28,11 @@
  )
 )
 
-(print
- (XML:sdump
-  (josh:render-rss "Josh's fun-time blog")
- )
+; Sort the posts
+(sort josh:*posts* josh:date-asc)
+
+(println 
+ (josh:render-rss "Hello")
 )
 
 (exit)

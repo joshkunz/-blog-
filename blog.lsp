@@ -108,6 +108,19 @@
 
 (set '*date-format* "%Y-%m-%d")
 
+(set '*post_f*
+ '((title _title)
+   (posted _posted)
+   (path _path)
+   (content _content)
+  )
+)
+
+; Get the last item from a assoc lookup
+(define (assoc-get expr from)
+ (last (assoc expr from)))
+
+
 ; Parse a date-string with the date-format
 (define (on date-string)
  (date-list
@@ -115,16 +128,28 @@
  )
 )
 
+; Storting functor that check the difference
+; between dates
+(define (date-desc postA postB)
+ (> 
+  (assoc-get 'posted postA) 
+  (assoc-get 'posted postB)
+ )
+)
+
+(define (date-asc postA postB)
+ (<
+  (assoc-get 'posted postA)
+  (assoc-get 'posted postB)
+ )
+)
+
 ; Add a new post to the posts list
-(define (post title posted path content)
- (setq *posts* 
-  (cons 
-   (list title
-         posted
-         path
-         content)
-   *posts*
-  )
+(define (post _title _posted _path _content)
+ (let (this-post 
+       (expand *post_f* 
+        '_title '_posted '_path '_content))
+  (setq *posts* (cons this-post *posts*))
  )
 )
 
@@ -139,11 +164,11 @@
 ; Convert a post into an rss-item 
 (define (post-as-item post)
  (rss:item
-  (nth 0 post)
+  (assoc-get 'title post)
   *author*
-  (url-join *link-base* (nth 2 post))
-  (rss:rss-date (apply date-value (nth 1 post)))
-  (nth 3 post)
+  (url-join *link-base* (assoc-get 'path post))
+  (rss:rss-date (apply date-value (assoc-get 'posted post)))
+  (assoc-get 'content post)
  )
 )
   
