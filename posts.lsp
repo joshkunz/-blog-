@@ -1,5 +1,20 @@
 (load "blog.lsp")
 (load "xml.lsp")
+(load "index.lsp")
+
+(setq output-dir "output")
+
+(define (path-append)
+ (cond 
+  ((empty? (args)) "")
+  (true 
+   (letn (compn (first (args))
+          f-compn (if (= (first compn) "/") (rest compn) compn))
+    (append f-compn "/" (apply path-append (rest (args))))
+   )
+  )
+ )
+)
 
 (new blog 'josh)
 
@@ -31,8 +46,9 @@
 ; Sort the posts
 (sort josh:*posts* josh:date-asc)
 
-(println 
- (josh:render-rss "Hello")
-)
+(set 'indexe (josh:render-index))
+(set 'index-path (chop (path-append output-dir "index.html")))
+
+(write-file index-path (XML:sdump indexe))
 
 (exit)

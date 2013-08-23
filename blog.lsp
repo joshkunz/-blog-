@@ -117,9 +117,8 @@
 )
 
 ; Get the last item from a assoc lookup
-(define (assoc-get expr from)
- (last (assoc expr from)))
-
+(define (get symbol from)
+ (last (assoc symbol from)))
 
 ; Parse a date-string with the date-format
 (define (on date-string)
@@ -132,15 +131,15 @@
 ; between dates
 (define (date-desc postA postB)
  (> 
-  (assoc-get 'posted postA) 
-  (assoc-get 'posted postB)
+  (get 'posted postA) 
+  (get 'posted postB)
  )
 )
 
 (define (date-asc postA postB)
  (<
-  (assoc-get 'posted postA)
-  (assoc-get 'posted postB)
+  (get 'posted postA)
+  (get 'posted postB)
  )
 )
 
@@ -164,11 +163,11 @@
 ; Convert a post into an rss-item 
 (define (post-as-item post)
  (rss:item
-  (assoc-get 'title post)
+  (get 'title post)
   *author*
-  (url-join *link-base* (assoc-get 'path post))
-  (rss:rss-date (apply date-value (assoc-get 'posted post)))
-  (assoc-get 'content post)
+  (url-join *link-base* (get 'path post))
+  (rss:rss-date (apply date-value (get 'posted post)))
+  (get 'content post)
  )
 )
   
