@@ -1,1 +1,4 @@
 output
+*.html
+*.md
+*.text
