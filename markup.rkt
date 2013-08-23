@@ -1,10 +1,8 @@
 #lang racket
 
-(require xml)
-
 (provide (contract-out
  [file (-> file-exists? string?)]
- [markdown (-> string? xexpr/c)]
+ [markdown (-> string? box?)]
  )
 )
 
@@ -12,7 +10,7 @@
 (define (file filename)
  (let ([file-port (open-input-file filename)])
   (begin0
-   (port->string file-port)
+   (string-trim (port->string file-port))
    (close-input-port file-port)
   )
  )
@@ -35,7 +33,7 @@
    (close-output-port markdown-in)
    (begin0
     ; Read out the formatted body
-    (string->xexpr (port->string markdown-out))
+    (box (port->string markdown-out))
     ; Close the output
     (close-input-port markdown-out)
     ; Close the error

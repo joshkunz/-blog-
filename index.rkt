@@ -2,28 +2,30 @@
 
 (provide index)
 
-(require xml)
+(require "xml.rkt")
 (require "utils.rkt")
 
-(define (post->xexpr post)
- `(div ([class "post"])
+(define (post->expr post)
+ `(div [@class "post"]
    (h1 ,(post-title post))
-   ,(cond
-     ([xexpr? (post-content post)]
-      (post-content post))
-     ([string? (post-content post)]
-      (list 'p (post-content post)))
-     (#t (list 'p "Invalid content type of post."))
-    )
+   (div [@class "post-content"]
+    ,(cond
+      ([box? (post-content post)]
+       (list '~uq (unbox
+                  (post-content post))))
+      ([string? (post-content post)]
+       (list 'p (post-content post)))
+      (#t (list 'p "Invalid content type of post."))
+     )
+   )
   )
 )
 
 
 (define (index posts)
- (display
- ;(xexpr->string
+ (exp->string
   `(html
-    ,(foldr cons (map post->xexpr posts)
+    ,(foldr cons (map post->expr posts)
       '(body (h1 "my blog"))
      )
    )

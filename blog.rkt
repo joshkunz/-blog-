@@ -3,6 +3,7 @@
 (require "utils.rkt")
 (require "index.rkt")
 (require "markup.rkt")
+(require "xml.rkt")
 
 (define blog 
  (posts `(
