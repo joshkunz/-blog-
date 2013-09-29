@@ -116,6 +116,13 @@
 ; Closer that evaluates to the null string
 (define (null-closer parent indent) "")
 
+; Closer that writes an empty-element closing
+(define (empty-closer symbol indent) "/>\n")
+
+(define (empty-tag-closer symbol indent) 
+ (string-append "></" (symbol->string symbol) ">\n")
+)
+
 ; Closer that writes a full </tag-name> closure
 (define (tag-closer symbol indent)
  (if symbol 
@@ -124,15 +131,21 @@
  )
 )
 
-; Closer that writes an empty-element closing
-(define (empty-closer) "/>\n")
-
 ; Helper function for the internal converter iexp->string
-(define (exp->string document)
- (iexp->string document '() #f)
+(define (exp->string document (use-empty? #t))
+ (cond
+  ; If we are given an empty document
+  ([empty? document] '())
+  ; If we are given a bare string
+  ([string? document] (xml-quote document))
+  ; If we are given an unquoted string
+  ([unquoted-string? document] (cadr document))
+  ; Otherwise, we have a real tree
+  (#t (iexp->string document '() #f use-empty?))
+ )
 )
 
-(define (iexp->string xp parent closed?
+(define (iexp->string xp parent closed? use-empty?
                       (closer null-closer) 
                       (indent 0))
  (cond
@@ -145,7 +158,7 @@
    (string-append
     (cap-close closed? #f) 
     (xml-quote (car xp))
-    (iexp->string (cdr xp) parent #t tag-closer 0)
+    (iexp->string (cdr xp) parent #t use-empty? tag-closer 0)
    )
   )
   ; If this element is an unquoted string
@@ -153,22 +166,24 @@
    (string-append
     (cap-close closed? #f)
     (cadr (car xp))
-    (iexp->string (cdr xp) parent #t tag-closer 0)
+    (iexp->string (cdr xp) parent #t use-empty? tag-closer 0)
    )
   )
   ; If this element is the start of a new XML element
   ((symbol? (car xp)) 
-   (string-append
-    (closer parent indent)
-    (tab indent) (open-tag (car xp))
-    (iexp->string (cdr xp) (car xp) #f empty-closer indent)
+   (let ([w-closer (if use-empty? empty-closer empty-tag-closer)])
+    (string-append
+     (closer parent indent)
+     (tab indent) (open-tag (car xp))
+     (iexp->string (cdr xp) (car xp) #f use-empty? w-closer indent)
+    )
    )
   )
   ; If we have an attribute pair for this element
   ((attr-pair? (car xp))
    (string-append 
     (attr-pair-string (car xp))
-    (iexp->string (cdr xp) parent closed? closer indent)
+    (iexp->string (cdr xp) parent closed? use-empty? closer indent)
    )
   )
   ; If we're starting a new sub-tree
@@ -176,9 +191,9 @@
    (string-append 
     (cap-close closed? #t)
     ; Follow the tree down
-    (iexp->string (car xp) parent #t null-closer (+ indent 1))
+    (iexp->string (car xp) parent #t use-empty? null-closer (+ indent 1))
     ; then parse the next element
-    (iexp->string (cdr xp) parent #t tag-closer indent)
+    (iexp->string (cdr xp) parent #t use-empty? tag-closer indent)
    )
   )
  )

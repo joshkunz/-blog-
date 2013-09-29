@@ -1,9 +1,24 @@
 #lang racket
 
 (provide (contract-out
+ [wrap (-> string? list?)]
+ [raw (-> string? list?)]
  [file (-> file-exists? string?)]
- [markdown (-> string? box?)]
+ [external-render (-> list? string? string?)]
+ [markdown (-> string? string?)]
+ [pandoc (-> string? string?)]
+ [py-markdown (-> string? string?)]
  )
+)
+
+; Wrap the string content in a paragraph
+(define (wrap content)
+ (list 'p content)
+)
+
+; Wrap the body as an unquoted string
+(define (raw content)
+ (list '~uq content)
 )
 
 ; Read the contents of 'filename' into a string
@@ -16,32 +31,55 @@
  )
 )
 
-; Render a string in markdown format
+; Render the given string content in markdown
 (define (markdown markdown-content)
- ; Get the path to the markdown executable
- (let ([markdown-path (find-executable-path "markdown")])
-  ; Run markdown as a subrocess
-  (let-values ([(markdown-out 
-                 markdown-in 
+ (external-render '("markdown") markdown-content)
+)
+
+; Render with pandoc
+(define (pandoc markdown-content)
+ (external-render '("pandoc" "-highlight-style=pygments") markdown-content)
+)
+
+; Render with python-markdown
+(define (py-markdown markdown-content)
+ (external-render '("python" "-m" "markdown" "-x" "extra" "-x" "codehilite") markdown-content)
+)
+
+; pass the given string into the supplied program where 'program' is a
+; list where the first element is the name of the executable and 
+; the following elements are arguments passed to the program
+(define (external-render program content)
+ (let ([program-with-path 
+       (list* (find-executable-path (car program)) (cdr program)) ])
+  (external-render-path program-with-path content)
+ )
+)
+
+; Same as 'external-render' except that the first element of 'program'
+; is a path to the program's executable instead of the name.
+(define (external-render-path program content)
+  ; Run the subprocess
+  (let-values ([(proc-out 
+                 proc-in 
                  pid 
-                 markdown-err 
+                 proc-err 
                  control)
-                (apply values (process* markdown-path))])
-   ; Write the markdown content to the process
-   (write-string markdown-content markdown-in)
-   ; Close the output port (hopefully triggering an EOF
-   (close-output-port markdown-in)
+                (apply values (apply process* program))])
+   ; Write the content to the process
+   (write-string content proc-in)
+   ; Close the output port (hopefully triggering an EOF)
+   (close-output-port proc-in)
    (begin0
     ; Read out the formatted body
-    (box (port->string markdown-out))
+    (port->string proc-out)
     ; Close the output
-    (close-input-port markdown-out)
+    (close-input-port proc-out)
     ; Close the error
-    (close-input-port markdown-err)
+    (close-input-port proc-err)
     ; Make sure the process is dead
     (control 'kill)
    )
-   ; The content will be returned 
+   ; The rendered content will be returned 
   )
- )
 )

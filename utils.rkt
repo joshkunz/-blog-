@@ -1,9 +1,12 @@
 #lang racket
 
+(require racket/date)
+
 (provide (contract-out
     [minimum-post? (-> any/c boolean?)]
     [post-title (-> minimum-post? string?)]
     [post-content (-> minimum-post? any/c)]
+    [post-date (-> minimum-post? date?)]
     [posts (-> (listof packed-post?) 
                (listof minimum-post?))]
     )
@@ -28,17 +31,17 @@
  (cond
   ([pair? possible-post]
    (and (assoc 'title possible-post)
-        (assoc 'content possible-post)))
+        (assoc 'content possible-post)
+        (assoc 'date possible-post)))
   (#t #f)
  )
 )
 
-; Gets the title of a post
-(define (post-title post)
- (cadr (assoc 'title post))
+(define (post-get what post)
+ (cadr (assoc what post))
 )
 
-; gets the content of a post
-(define (post-content post)
- (cadr (assoc 'content post))
-)
+; Post getters
+(define (post-title post) (post-get 'title post))
+(define (post-content post) (post-get 'content post))
+(define (post-date post) (post-get 'date post))
